@@ -1,0 +1,55 @@
+---
+layout: ../layouts/Layout.astro
+title: What is a TEE
+description: TEEs protect secrets through physical hardware isolation and trust in a chip manufacturer — not an unsolved math problem. Here's what that means and why it's a real, not cosmetic, difference from the rest of this network.
+---
+
+# What is a TEE
+
+A **Trusted Execution Environment** is a region of a processor — sometimes
+called an **enclave** — that runs code and holds data isolated from
+everything else on the machine: the operating system, the hypervisor, other
+processes, and (depending on the threat model) even someone with physical
+access to the hardware. Code and data inside the TEE stay confidential and
+unmodified while running, even if the rest of the system is fully
+compromised.
+
+## The framing that matters most on this site
+
+Every other site in this network protects a secret using a **mathematical
+problem believed to be hard**: a discrete logarithm ([Pedersen
+Commitments](https://pedersen.foundation), [zkSNARK](https://zksnark.foundation)),
+a garbled truth table ([Garbled Circuits](https://garbled.foundation)),
+repeated squaring in a group of unknown order ([VDF](https://vdf.foundation)).
+In every one of those cases, the security claim can be — and on those sites,
+*is* — demonstrated by running real, complete code in your browser. There's
+nothing left out.
+
+A TEE's security claim is different in kind, not just degree: it rests on
+**physical isolation manufactured into a chip**, plus your trust that the
+manufacturer (Intel, ARM, AMD, or a licensee) designed and fabricated that
+isolation correctly and didn't leave a backdoor. There is no mathematical
+proof that a given enclave is truly isolated from the rest of the
+processor — you either trust the hardware, or you don't, or you trust it
+conditionally based on its track record (see History, coming soon, for why
+that track record matters, including the real attacks that broke supposedly
+airtight isolation).
+
+This means a TEE's threat model looks almost inverted compared to the rest
+of this network: a discrete-logarithm-based scheme stays secure as long as
+the *math* holds, regardless of who manufactured your CPU. A TEE stays
+secure only as long as the *silicon* holds, and specifically only as long
+as *that one company's* silicon holds — a very different, and in some ways
+much narrower, kind of trust.
+
+## What this means for this site's demo
+
+Because a TEE's core security property is physical, **it can't be computed
+or simulated in a browser** — there's no JavaScript equivalent of "actually
+isolate this memory region from the operating system." What *can* be
+computed for real is the cryptographic layer built on top of that
+isolation: **remote attestation**, the mechanism a TEE uses to prove to a
+remote party exactly what code it's running. That's what this site's own
+interactive demo implements — see [how it works](/how-it-works) for exactly
+where the honest line is drawn between "real, computed cryptography" and
+"illustration of something only real hardware can do."

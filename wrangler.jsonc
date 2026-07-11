@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "tee-foundation",
+  "compatibility_date": "2026-07-11",
+  "assets": {
+    "directory": "./dist"
+  }
+  // Domain tee.foundation is not yet purchased. Once it's on this
+  // Cloudflare account, add custom_domain routes here — see the other
+  // four sites' wrangler.jsonc for the exact shape, and check for the
+  // leftover-placeholder-DNS-record + parking-worker-route gotcha
+  // documented in those repos' memory before attaching.
+}

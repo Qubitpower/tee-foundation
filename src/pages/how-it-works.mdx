@@ -1,0 +1,105 @@
+---
+layout: ../layouts/Layout.astro
+title: How it works
+description: What a browser physically cannot compute about hardware isolation, followed by the exact remote-attestation scheme this site's demo does compute — plus the honest caveats about both.
+---
+
+# How it works
+
+## What can't be computed in a browser, and why
+
+Read this before the demo, not after.
+
+A TEE's core security property — that code and data inside the enclave are
+physically inaccessible to the operating system, hypervisor, and other
+processes, even under full compromise of everything else on the machine —
+is enforced by dedicated circuitry on the processor itself: memory
+encryption engines, access-control checks baked into the CPU's page-table
+walker, and isolation logic that exists nowhere except in that specific
+piece of silicon. There is no software routine, in JavaScript or any other
+language, that reproduces this. A browser tab has no access to — and no way
+to simulate — the physical memory-protection hardware a real TEE relies on.
+
+This is not a corner this site is cutting for convenience. It's a
+category difference from every other site in this network, spelled out on
+[what a TEE is](/what-is-a-tee): those sites protect secrets with math that
+can be run in full, in a browser tab, with nothing missing. A TEE protects
+secrets with silicon, and there is no software substitute for silicon.
+
+What *is* real, computable software: the cryptographic protocol a TEE uses
+to **prove to someone else what code it's running** — remote attestation.
+That's what the rest of this page, and this site's demo, actually
+implement.
+
+## The attestation scheme this site's demo runs
+
+**The roles.** A chip **manufacturer** holds a private key, generated once
+and never exposed — in real hardware, burned into the silicon at the
+factory and inaccessible even to the device owner. An **enclave** is the
+code (and its data) running inside the TEE. A **verifier** is a remote
+party who wants proof of exactly what code the enclave is running, without
+trusting the machine it's running on.
+
+**Setup** (once, per chip, in reality — regenerated fresh each time you
+load this site's demo):
+
+```
+(manufacturer_sk, manufacturer_pk) = Ed25519.generateKeyPair()
+```
+
+**Measurement.** The enclave's code is hashed — this hash is called the
+**measurement**, and it's what a verifier will check against an expected
+value it already knows (from, for example, having reviewed and approved
+that exact code beforehand):
+
+```
+measurement = SHA256(enclave_code)
+```
+
+**The quote.** The enclave (in reality, via a hardware mechanism) produces
+a signed statement of its own measurement:
+
+```
+quote = {
+  measurement,
+  signature: Ed25519.sign(manufacturer_sk, measurement)
+}
+```
+
+**Verification.** The verifier — who never has access to
+`manufacturer_sk` — checks two independent things:
+
+```
+valid = Ed25519.verify(manufacturer_pk, quote.measurement, quote.signature)
+        AND quote.measurement == expected_measurement
+```
+
+**Why tampering is always caught.** Change even a single byte of
+`enclave_code` and `measurement` changes (SHA-256 has no near-collisions).
+From there, an attacker has exactly two options, and both fail:
+
+- Reuse the *old* signature with the *new* measurement — the signature
+  check fails, because the signature was only ever valid for the original
+  measurement.
+- Honestly re-sign the *new* measurement (which, in reality, requires the
+  manufacturer's key — assume for argument's sake an attacker somehow had
+  it) — the signature check now passes, but the measurement itself no
+  longer matches what the verifier independently expected, so the second
+  check fails instead.
+
+Either way, verification fails. The interactive demo (coming soon) lets you
+try both paths yourself.
+
+## The honest caveat this page won't let you skip
+
+**This is a simplified structure, not a literal implementation of any real
+TEE's attestation format.** Real Intel SGX attestation runs through a
+special **quoting enclave** and a certificate chain rooted at Intel, not a
+single flat signature. ARM TrustZone and AMD SEV each have their own
+distinct attestation mechanisms, with their own key hierarchies and
+verification chains — none of them look bit-for-bit like the scheme above.
+What this page and its demo show is the underlying *logic* every real
+scheme is built on — a measurement, a signature over it, and independent
+verification — not a byte-for-byte match with any specific vendor's actual
+protocol. See Further reading (coming soon) for the real
+specifications.

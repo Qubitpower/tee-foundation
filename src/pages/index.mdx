@@ -1,0 +1,40 @@
+---
+layout: ../layouts/Layout.astro
+title: TEEs, explained
+description: A plain-spoken explanation of Trusted Execution Environments — why they're hardware, not math, and a real attestation-verification demo you can run yourself.
+---
+
+A **Trusted Execution Environment (TEE)** is a region of a processor that
+runs code in isolation from everything else on the machine — the operating
+system, the hypervisor, even someone with physical access to the box — so
+that a program's code and data stay confidential and unmodified while it
+runs. ARM TrustZone, Intel SGX, and AMD SEV are the three major
+implementations; see History (coming soon) for how each one arrived.
+
+Every other site in this network — [Pedersen
+Commitments](https://pedersen.foundation), [Garbled
+Circuits](https://garbled.foundation), [VDF](https://vdf.foundation),
+[zkSNARK](https://zksnark.foundation) — protects a secret because some
+*mathematical problem* is believed to be hard to solve, and that hardness
+can be demonstrated by running real code in your browser. A TEE protects a
+secret differently: through **physical isolation built into a chip**, and
+your trust that the chip's manufacturer built and manufactured it honestly.
+That's a real, load-bearing difference, not a simplification — see [what a
+TEE is](/what-is-a-tee) for why it matters.
+
+**What this site's demo can honestly show:** the cryptographic half of
+**remote attestation** — proving to someone else, over the network, exactly
+what code is running inside an enclave — computed for real, in your
+browser. **What it can't show:** the actual memory isolation itself, because
+that requires real silicon and physically cannot be computed in JavaScript.
+See [how it works](/how-it-works) for that distinction stated in full,
+before the demo, not after it.
+
+## What this site covers
+
+- [What is a TEE](/what-is-a-tee) — the hardware-vs-math framing that makes
+  this site different from the rest of this network.
+- [How it works](/how-it-works) — what can and can't be computed in a
+  browser, and the exact attestation scheme this site's demo runs.
+- History, Applications, Glossary, and Further reading (all coming soon) —
+  including a full account of real attacks against TEEs, not a footnote.
