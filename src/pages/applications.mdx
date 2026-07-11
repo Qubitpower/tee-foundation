@@ -1,0 +1,44 @@
+---
+layout: ../layouts/Layout.astro
+title: Applications
+description: Confidential computing in the cloud, and TEEs in blockchain contexts — described in general terms, without overclaiming specifics about any one provider or project.
+---
+
+# Applications
+
+## Confidential computing in the cloud
+
+The three major cloud providers — Azure, AWS, and Google Cloud — each
+offer **confidential VM** products built on hardware TEEs (typically AMD
+SEV or Intel SGX/TDX, depending on the instance family), letting a
+customer run a workload where the cloud provider's own hypervisor and
+operating system are excluded from the trusted computing base. The pitch
+is straightforward given everything on this site so far: you get to trust
+the chip manufacturer's isolation guarantee instead of trusting your cloud
+provider's operational security — a genuinely different, and for some
+threat models meaningfully smaller, trust boundary. This is now a mature,
+widely available product category across all three providers, not an
+experimental one.
+
+## TEEs in blockchain contexts
+
+TEEs also show up in various blockchain and decentralized-system designs,
+usually to keep some computation or data confidential while still letting
+other participants verify — via remote attestation, the exact mechanism
+this site's demo implements — that the computation ran correctly on
+unmodified code. This site deliberately doesn't name or evaluate specific
+projects here: the trust assumptions, threat models, and track records
+vary enormously between implementations, and a general reference page
+isn't the place to make or imply claims about any particular one's
+security. The general shape worth taking away, tying back to [what a TEE
+is](/what-is-a-tee): using a TEE in this kind of system means trading a
+purely math-based trust assumption for a hardware-and-manufacturer-based
+one — a real tradeoff, not a strict improvement, and worth evaluating
+project-by-project rather than assuming.
+
+---
+
+**Sources:** confidential VM offerings from Azure, AWS, and Google Cloud
+are widely documented, publicly available product categories and don't
+require date-specific citation; see [History](/history) for the
+underlying hardware technologies these products are built on.

@@ -1,0 +1,81 @@
+---
+layout: ../layouts/Layout.astro
+title: Glossary
+description: Plain-language definitions for the terms used across this site — enclave, attestation, measurement, root of trust, side-channel attack, trusted computing base, speculative execution.
+---
+
+# Glossary
+
+Short, plain-language definitions for terms used elsewhere on this site.
+Each links back to the page where it's explained in more depth.
+
+### Attestation
+
+The process of proving to a remote party exactly what code is running
+inside an enclave, without that party having to trust the machine it's
+running on. See [how it works](/how-it-works#the-attestation-scheme-this-sites-demo-runs)
+for the exact scheme this site's demo implements.
+
+### Enclave
+
+An isolated region of a processor where code and data are protected from
+everything else on the machine — the operating system, the hypervisor,
+other processes — even under full compromise of the rest of the system.
+See [what a TEE is](/what-is-a-tee).
+
+### Measurement
+
+A cryptographic hash of an enclave's code (and, in real implementations,
+its initial data) computed as it's loaded. A verifier compares an
+enclave's reported measurement against a value it already knows and
+trusts, rather than inspecting the code directly. See [how it
+works](/how-it-works) and try changing the code in the [interactive
+demo](/interactive) to watch the measurement change.
+
+### Root of trust
+
+The foundational assumption a whole security chain rests on — for a TEE,
+this is the manufacturer's private key, generated once (in reality, at the
+factory) and never exposed. Every attestation this site's demo verifies
+ultimately traces back to trusting that one key was generated and
+protected honestly. Real hardware chains this through a certificate
+hierarchy rather than a single flat key — see [how it
+works](/how-it-works#the-honest-caveat-this-page-wont-let-you-skip) for
+that simplification stated explicitly.
+
+### Side-channel attack
+
+An attack that extracts secret information through something a system
+leaks incidentally — timing, power consumption, electromagnetic emissions,
+or (as with [Foreshadow](/history) and [Plundervolt](/history))
+microarchitectural effects of speculative execution and voltage
+manipulation — rather than by breaking the cryptography or access-control
+logic directly. TEEs are especially exposed to this category because
+their whole premise is running secrets on hardware shared, at some level,
+with the party they're trying to keep the secret from.
+
+### Speculative execution
+
+A performance optimization in modern processors: rather than waiting to
+know for certain which instructions will actually be needed, the CPU
+guesses and starts executing them ahead of time, discarding the results
+if the guess was wrong. [Foreshadow](/history) exploited the fact that
+data touched during a "wrong guess" could still leave measurable traces
+behind — the same general class of weakness as Meltdown and Spectre,
+applied specifically to SGX-protected memory.
+
+### Trusted computing base (TCB)
+
+The complete set of hardware and software a system's security actually
+depends on — everything that, if compromised, breaks the security
+guarantee. A major selling point of TEEs is shrinking the TCB: instead of
+trusting an entire operating system and hypervisor, you're trusting only
+the processor's isolation hardware and the small amount of code running
+inside the enclave itself.
+
+---
+
+**Sources:** these are standard definitions used consistently across the
+TEE literature; see [History](/history) and [Further
+reading](/further-reading) for citations to the original papers and
+official documentation.

@@ -1,0 +1,77 @@
+---
+layout: ../layouts/Layout.astro
+title: History
+description: From ARM TrustZone in 2003 through Intel SGX and AMD SEV, to the real attacks — Foreshadow and Plundervolt — that broke assumptions about what hardware isolation actually guarantees.
+---
+
+# History
+
+The attacks below are not a footnote. A TEE's whole value proposition
+rests on a hardware trust claim — what actually happened when that claim
+was tested is as much a part of this history as the technology itself.
+
+### 2003–2004 — ARM TrustZone
+
+ARM introduces the TrustZone security extensions, architecturally
+described starting in 2003 and shipping in real Cortex-A silicon from
+2004 — the first massively-deployed TEE implementation, still the basis
+of the secure world/normal world split in nearly every modern ARM
+application processor.
+
+### 2013–2015 — Intel SGX
+
+Intel announces Software Guard Extensions (SGX) in 2013. It physically
+ships for the first time in 2015, with the 6th-generation Intel Core
+("Skylake") family.
+
+### 2016–2017 — AMD SEV
+
+AMD describes Secure Encrypted Virtualization (SEV) — hardware memory
+encryption isolating a virtual machine from its own hypervisor — in a
+2016 whitepaper and conference materials. The first hardware to actually
+implement it, the EPYC 7001 series ("Naples"), ships in **June 2017**.
+SEV-ES (Encrypted State), which additionally encrypts a VM's CPU register
+contents on every exit to the hypervisor, is specified the same year.
+
+### August 2018 — Foreshadow
+
+Two independent research teams — one from KU Leuven, the other spanning
+Technion, the University of Michigan, the University of Adelaide, and
+CSIRO's Data61 — separately discover and report a speculative-execution
+attack against Intel SGX in January 2018. Intel assigns it **CVE-2018-3615**
+and coordinates a fix; the attack is publicly disclosed on **August 14,
+2018**, as *"Foreshadow: Extracting the Keys to the Intel SGX Kingdom with
+Transient Out-of-Order Execution"* (Van Bulck et al.), USENIX Security
+2018, pp. 991–1008.
+
+Foreshadow matters beyond its immediate technical mechanism: it showed
+that speculative execution could read the contents of SGX-protected
+memory *and* extract SGX's own attestation signing key — breaking the
+assumption that SGX was immune to the Meltdown/Spectre class of attacks.
+Because an SGX attestation report can't be cryptographically tied to the
+identity of the specific machine that signed it, a single compromised SGX
+machine was enough to undermine trust in attestations from the entire
+ecosystem, not just that one device.
+
+### 2019–2020 — Plundervolt
+
+Researchers from the University of Birmingham, imec-DistriNet (KU
+Leuven), and Graz University of Technology responsibly disclose
+Plundervolt to Intel in June 2019; it's published as *"Plundervolt:
+Software-based Fault Injection Attacks against Intel SGX"* at IEEE
+Symposium on Security and Privacy 2020, pp. 1466–1482. Assigned
+**CVE-2019-11157**.
+
+Where Foreshadow reads secrets out of SGX memory — a confidentiality
+break — Plundervolt goes after integrity instead: by manipulating the
+processor's power-management voltage controls (normally meant for
+overclocking/underclocking) while an enclave computes, it can flip
+individual bits inside SGX-protected memory, corrupting values like
+cryptographic keys mid-computation. Intel's fix removed the ability to
+adjust voltage from software entirely via microcode and BIOS updates.
+
+---
+
+**Sources:** linked inline above; all citations are to the original
+papers and CVE records. See [Further reading](/further-reading) for
+direct links.

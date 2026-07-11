@@ -1,0 +1,79 @@
+---
+layout: ../layouts/Layout.astro
+title: About
+description: What this site is, why it exists, who maintains it, and how to propose a correction — plus the license terms for the text and code.
+---
+
+# About
+
+## What this is
+
+This is a reference site about **Trusted Execution Environments** — not
+an organization. "tee.foundation" is a domain name chosen for the topic,
+in the same `.foundation` style as other single-topic reference sites in
+this small network (see below) — it isn't the name of an institution, and
+nothing on this site should be read as one.
+
+## Why it exists
+
+TEEs sit in an unusual spot for a site otherwise built around cryptographic
+primitives: the underlying security guarantee is hardware, not math, and
+that's a real difference worth stating plainly rather than glossing over
+— see [what a TEE is](/what-is-a-tee). Most explanations either wave at
+"secure enclaves" without saying what can and can't actually be verified,
+or dive into vendor-specific implementation details without ever letting
+you compute anything yourself. This site tries to close that gap: it
+computes the real, verifiable part — attestation — live in your browser,
+draws an explicit, honest line around the part that physically can't be
+computed there, and treats the real attacks against this hardware
+(Foreshadow, Plundervolt) as core history, not a footnote.
+
+Every historical claim and citation on this site is sourced to a specific
+paper, CVE record, or official vendor documentation (see
+[History](/history) and [Further reading](/further-reading)); nothing is
+stated from memory without a source. The interactive demo computes real
+values in your browser — see [Interactive](/interactive) and
+[Code](/code) — nothing is mocked or precomputed. The one exception,
+clearly and repeatedly labeled as such, is the isolation diagram on
+[Interactive](/interactive): an illustration, not a computation, because
+real memory isolation cannot be computed in a browser at all.
+
+## Part of a small network of reference sites
+
+This site shares its design and editorial approach with a small, growing
+set of independent reference sites on specific cryptographic primitives:
+[Pedersen Commitments](https://pedersen.foundation), on Torben Pedersen's
+commitment scheme, [Garbled Circuits](https://garbled.foundation), on
+Yao's garbled circuits, [VDF](https://vdf.foundation), on Verifiable
+Delay Functions, and [zkSNARK](https://zksnark.foundation), on
+zk-SNARKs. Each covers one topic; none of them is an organization, and
+they aren't affiliated with each other beyond sharing a template. This is
+the one site in the network built on a hardware trust assumption rather
+than a mathematical one — see [what a TEE is](/what-is-a-tee) for that
+contrast stated in full.
+
+## Who maintains this
+
+This is an independent educational project maintained by one person, with
+public source and open contributions (see below). It is not affiliated
+with Intel, ARM, AMD, any of the Foreshadow or Plundervolt research teams
+or their institutions (KU Leuven, Technion, University of Michigan,
+University of Adelaide, CSIRO's Data61, University of Birmingham,
+imec-DistriNet, Graz University of Technology), or any other organization
+whose work it cites and links to.
+
+## Proposing a correction or addition
+
+The site's source is public on GitHub at
+[github.com/Qubitpower/tee-foundation](https://github.com/Qubitpower/tee-foundation).
+If you spot an error — a wrong date, a broken link, a mistake in the
+demo — please open an issue or a pull request there.
+
+## License
+
+- **Text and explanations** on this site are licensed
+  [CC-BY](https://creativecommons.org/licenses/by/4.0/) — reuse and adapt
+  freely, with attribution.
+- **Code** (the demo, and the samples on the [Code](/code) page) is
+  licensed [MIT](https://opensource.org/license/mit/) — use it however you
+  like.

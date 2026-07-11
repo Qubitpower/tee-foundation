@@ -1,0 +1,182 @@
+---
+layout: ../layouts/Layout.astro
+title: Code
+description: The attestation scheme from how it works — implemented in Python, JavaScript, and Rust. Every sample here has actually been run, including both tampering paths.
+---
+
+# Code
+
+The same attestation scheme from [how it works](/how-it-works) —
+implemented in Python, JavaScript, and Rust. Every sample on this page has
+actually been run and checked for a correct roundtrip *and* both required
+tampering paths (a reused signature over new code, and an honestly
+re-signed but measurement-mismatched quote); none of this is pseudocode.
+Remember: this is the attestation half only — see [what a TEE
+is](/what-is-a-tee) for why the actual hardware isolation can't be shown
+as code at all.
+
+## Python
+
+Uses [`cryptography`](https://cryptography.io), the standard, audited
+Python cryptography library's Ed25519 implementation.
+
+```python
+import hashlib
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.exceptions import InvalidSignature
+
+def measure(code: str) -> bytes:
+    """The "measurement" — a hash of the enclave's code."""
+    return hashlib.sha256(code.encode()).digest()
+
+def make_quote(code: str, sk: Ed25519PrivateKey) -> dict:
+    """R = measure(code), signed by the manufacturer key."""
+    measurement = measure(code)
+    signature = sk.sign(measurement)
+    return {"measurement": measurement, "signature": signature}
+
+def verify_quote(quote: dict, pk, expected_measurement: bytes) -> dict:
+    """Two independent checks: signature validity, and a measurement match."""
+    try:
+        pk.verify(quote["signature"], quote["measurement"])
+        signature_valid = True
+    except InvalidSignature:
+        signature_valid = False
+    measurement_matches = quote["measurement"] == expected_measurement
+    return {
+        "signature_valid": signature_valid,
+        "measurement_matches": measurement_matches,
+        "valid": signature_valid and measurement_matches,
+    }
+
+# --- usage ---
+manufacturer_sk = Ed25519PrivateKey.generate()
+manufacturer_pk = manufacturer_sk.public_key()
+
+honest_code = "function add(a, b) {\n  return a + b;\n}"
+tampered_code = "function add(a, b) {\n  return a + b + 1;\n}"
+
+expected = measure(honest_code)
+honest_quote = make_quote(honest_code, manufacturer_sk)
+assert verify_quote(honest_quote, manufacturer_pk, expected)["valid"]
+
+# tampering path 1: reuse the old signature over the new measurement
+fake_quote = {"measurement": measure(tampered_code), "signature": honest_quote["signature"]}
+assert not verify_quote(fake_quote, manufacturer_pk, expected)["valid"]
+
+# tampering path 2: honestly re-sign the tampered code — still rejected,
+# because the measurement itself no longer matches what was expected
+resigned_quote = make_quote(tampered_code, manufacturer_sk)
+result = verify_quote(resigned_quote, manufacturer_pk, expected)
+assert result["signature_valid"] and not result["measurement_matches"] and not result["valid"]
+```
+
+## JavaScript
+
+This is the same implementation running live in the demo on this site —
+see
+[`src/lib/attestation.js`](https://github.com/Qubitpower/tee-foundation/blob/main/src/lib/attestation.js)
+in the site's own repository. Uses
+[`@noble/curves`](https://github.com/paulmillr/noble-curves) (Ed25519) and
+[`@noble/hashes`](https://github.com/paulmillr/noble-hashes) (SHA-256).
+
+```javascript
+import { ed25519 } from '@noble/curves/ed25519.js';
+import { sha256 } from '@noble/hashes/sha2.js';
+
+// The "measurement" — a hash of the enclave's code.
+function measure(code) {
+  return sha256(new TextEncoder().encode(code));
+}
+
+// R = measure(code), signed by the manufacturer key.
+function makeQuote(code, manufacturerSecretKey) {
+  const measurement = measure(code);
+  const signature = ed25519.sign(measurement, manufacturerSecretKey);
+  return { measurement, signature };
+}
+
+// Two independent checks: signature validity, and a measurement match.
+function verifyQuote(quote, manufacturerPublicKey, expectedMeasurement) {
+  const signatureValid = ed25519.verify(quote.signature, quote.measurement, manufacturerPublicKey);
+  const measurementMatches = toHex(quote.measurement) === toHex(expectedMeasurement);
+  return { signatureValid, measurementMatches, valid: signatureValid && measurementMatches };
+}
+
+function toHex(bytes) {
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+```
+
+## Rust
+
+Uses [`ed25519-dalek`](https://docs.rs/ed25519-dalek), the RustCrypto
+project's audited Ed25519 implementation.
+
+```rust
+use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
+use rand::rngs::OsRng;
+use sha2::{Digest, Sha256};
+
+/// The "measurement" — a hash of the enclave's code.
+fn measure(code: &str) -> [u8; 32] {
+    Sha256::digest(code.as_bytes()).into()
+}
+
+struct Quote {
+    measurement: [u8; 32],
+    signature: Signature,
+}
+
+/// R = measure(code), signed by the manufacturer key.
+fn make_quote(code: &str, sk: &SigningKey) -> Quote {
+    let measurement = measure(code);
+    let signature = sk.sign(&measurement);
+    Quote { measurement, signature }
+}
+
+struct VerifyResult {
+    signature_valid: bool,
+    measurement_matches: bool,
+    valid: bool,
+}
+
+/// Two independent checks: signature validity, and a measurement match.
+fn verify_quote(quote: &Quote, pk: &VerifyingKey, expected: &[u8; 32]) -> VerifyResult {
+    let signature_valid = pk.verify(&quote.measurement, &quote.signature).is_ok();
+    let measurement_matches = quote.measurement == *expected;
+    VerifyResult { signature_valid, measurement_matches, valid: signature_valid && measurement_matches }
+}
+
+fn main() {
+    let mut csprng = OsRng;
+    let manufacturer_sk = SigningKey::generate(&mut csprng);
+    let manufacturer_pk = manufacturer_sk.verifying_key();
+
+    let honest_code = "function add(a, b) {\n  return a + b;\n}";
+    let tampered_code = "function add(a, b) {\n  return a + b + 1;\n}";
+
+    let expected = measure(honest_code);
+    let honest_quote = make_quote(honest_code, &manufacturer_sk);
+    assert!(verify_quote(&honest_quote, &manufacturer_pk, &expected).valid);
+
+    // tampering path 1: reuse the old signature over the new measurement
+    let fake_quote = Quote { measurement: measure(tampered_code), signature: honest_quote.signature };
+    assert!(!verify_quote(&fake_quote, &manufacturer_pk, &expected).valid);
+
+    // tampering path 2: honestly re-sign the tampered code — still
+    // rejected, because the measurement no longer matches what was expected
+    let resigned_quote = make_quote(tampered_code, &manufacturer_sk);
+    let result = verify_quote(&resigned_quote, &manufacturer_pk, &expected);
+    assert!(result.signature_valid && !result.measurement_matches && !result.valid);
+}
+```
+
+---
+
+**Sources:** implements the construction derived on [how it
+works](/how-it-works). The Python sample uses
+[`cryptography`](https://cryptography.io); the JavaScript sample uses
+[`@noble/curves`](https://github.com/paulmillr/noble-curves) and
+[`@noble/hashes`](https://github.com/paulmillr/noble-hashes); the Rust
+sample uses [`ed25519-dalek`](https://docs.rs/ed25519-dalek).
