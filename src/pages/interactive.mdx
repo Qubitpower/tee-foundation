@@ -1,0 +1,49 @@
+---
+layout: ../layouts/Layout.astro
+title: Interactive demo
+description: Publish an expected measurement, generate a signed attestation quote, and verify it — plus watch both tampering paths get caught, and an explicitly-labeled illustration of what real hardware does for the isolation half this demo can't show.
+---
+import AttestationDemo from '../components/AttestationDemo.astro';
+import IsolationDiagram from '../components/IsolationDiagram.astro';
+
+# Interactive demo
+
+Before using this, read [what a TEE is](/what-is-a-tee) and [how it
+works](/how-it-works) if you haven't — this demo computes the
+cryptographic half of remote attestation for real. It does **not**, and
+physically cannot, compute the actual hardware memory isolation a TEE
+relies on — that part is shown below as a labeled illustration, not a
+computation.
+
+## The real demo: attestation verification
+
+1. **Publish expected measurement** — hash whatever is currently in the
+   code box. This represents a verifier who reviewed and approved this
+   exact code in advance.
+2. **Generate & publish quote** — hash the code box again (edit it first,
+   if you want) and sign that measurement with the manufacturer key. This
+   represents the enclave producing evidence of what it's running.
+3. **Verify** — check the quote's signature *and* that its measurement
+   matches what was published in step 1.
+4. Then try the two dedicated buttons below the demo panel, each
+   demonstrating a different way tampering gets caught: reusing an old
+   signature over new code (the signature check fails), and honestly
+   re-signing tampered code (the signature is valid, but the measurement
+   no longer matches what the verifier expected — rejected anyway).
+
+<AttestationDemo />
+
+Every value above is computed live in your browser using
+[`@noble/curves`](https://github.com/paulmillr/noble-curves) (Ed25519) and
+[`@noble/hashes`](https://github.com/paulmillr/noble-hashes) (SHA-256) —
+see Code (coming soon) for the same scheme in Python, JavaScript, and
+Rust.
+
+## The illustration: what real hardware does for isolation
+
+This part is not computed — it can't be, in a browser. It's a sketch of
+what happens on real hardware when an enclave is created and used, so the
+"physically cannot be computed in JavaScript" claim on [how it
+works](/how-it-works) doesn't have to stay abstract.
+
+<IsolationDiagram />

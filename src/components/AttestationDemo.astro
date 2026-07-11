@@ -1,0 +1,132 @@
+<div class="demo-panel" id="attestation-demo">
+  <p class="demo-status">Ready — Ed25519 via @noble/curves, SHA-256 via @noble/hashes. A fresh manufacturer key is generated in your browser below (in reality: burned into silicon at the factory).</p>
+
+  <div class="demo-row">
+    <label for="attn-code">Enclave code (edit it — this is what gets measured)</label>
+    <textarea id="attn-code" rows="3" spellcheck="false"></textarea>
+  </div>
+
+  <div class="demo-input-row">
+    <button id="attn-expect-btn" type="button">1. Publish expected measurement</button>
+    <button id="attn-quote-btn" type="button" disabled>2. Generate &amp; publish quote</button>
+    <button id="attn-verify-btn" type="button" disabled>3. Verify</button>
+  </div>
+
+  <div class="demo-divider" id="attn-expected-result" hidden>
+    <p class="demo-label">Expected measurement (what the verifier already knows, from reviewing this code in advance)</p>
+    <code class="demo-commitment" id="attn-expected-hex"></code>
+  </div>
+
+  <div class="demo-divider" id="attn-quote-result" hidden>
+    <p class="demo-label">Quote (published by the enclave)</p>
+    <code class="demo-commitment" id="attn-quote-measurement-hex"></code>
+    <code class="demo-commitment" id="attn-quote-signature-hex"></code>
+    <p class="demo-hint">This measurement is hashed from whatever is in the code box <strong>right now</strong> — edit the code above before clicking step 2 again to see what changes.</p>
+  </div>
+
+  <div class="demo-divider" id="attn-verify-result" hidden>
+    <p class="demo-check" id="attn-verify-check"></p>
+    <p class="demo-hint" id="attn-verify-detail"></p>
+  </div>
+
+  <div class="demo-divider">
+    <p class="demo-label">Or jump straight to the two ways tampering gets caught:</p>
+    <div class="demo-input-row">
+      <button id="attn-tamper-sig-btn" type="button" class="secondary">Reuse an old signature over new code</button>
+      <button id="attn-tamper-measurement-btn" type="button" class="secondary">Honestly re-sign tampered code</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import {
+    generateManufacturerKey,
+    measure,
+    makeQuote,
+    verifyQuote,
+    toHex,
+  } from '../lib/attestation.js';
+
+  const statusEl = document.querySelector('#attestation-demo .demo-status')!;
+  const codeInput = document.getElementById('attn-code') as HTMLTextAreaElement;
+  const expectBtn = document.getElementById('attn-expect-btn') as HTMLButtonElement;
+  const quoteBtn = document.getElementById('attn-quote-btn') as HTMLButtonElement;
+  const verifyBtn = document.getElementById('attn-verify-btn') as HTMLButtonElement;
+  const expectedResultEl = document.getElementById('attn-expected-result')!;
+  const expectedHexEl = document.getElementById('attn-expected-hex')!;
+  const quoteResultEl = document.getElementById('attn-quote-result')!;
+  const quoteMeasurementHexEl = document.getElementById('attn-quote-measurement-hex')!;
+  const quoteSignatureHexEl = document.getElementById('attn-quote-signature-hex')!;
+  const verifyResultEl = document.getElementById('attn-verify-result')!;
+  const verifyCheckEl = document.getElementById('attn-verify-check')!;
+  const verifyDetailEl = document.getElementById('attn-verify-detail')!;
+  const tamperSigBtn = document.getElementById('attn-tamper-sig-btn') as HTMLButtonElement;
+  const tamperMeasurementBtn = document.getElementById('attn-tamper-measurement-btn') as HTMLButtonElement;
+
+  function shortHex(hex: string, chars = 44) {
+    return hex.length > chars + 2 ? `${hex.slice(0, chars)}…` : hex;
+  }
+
+  const HONEST_CODE = 'function add(a, b) {\n  return a + b;\n}';
+  const TAMPERED_CODE = 'function add(a, b) {\n  return a + b + 1;\n}';
+  codeInput.value = HONEST_CODE;
+
+  const { secretKey, publicKey } = generateManufacturerKey();
+
+  let expectedMeasurement: Uint8Array | null = null;
+  let currentQuote: ReturnType<typeof makeQuote> | null = null;
+
+  expectBtn.addEventListener('click', () => {
+    expectedMeasurement = measure(codeInput.value);
+    expectedHexEl.textContent = shortHex('0x' + toHex(expectedMeasurement));
+    expectedResultEl.hidden = false;
+    quoteResultEl.hidden = true;
+    verifyResultEl.hidden = true;
+    quoteBtn.disabled = false;
+    verifyBtn.disabled = true;
+  });
+
+  quoteBtn.addEventListener('click', () => {
+    currentQuote = makeQuote(codeInput.value, secretKey);
+    quoteMeasurementHexEl.textContent = 'measurement: 0x' + shortHex(toHex(currentQuote.measurement));
+    quoteSignatureHexEl.textContent = 'signature: 0x' + shortHex(toHex(currentQuote.signature));
+    quoteResultEl.hidden = false;
+    verifyResultEl.hidden = true;
+    verifyBtn.disabled = false;
+  });
+
+  function runVerify(quote: ReturnType<typeof makeQuote>, expected: Uint8Array, label: string) {
+    const result = verifyQuote(quote, publicKey, expected);
+    verifyCheckEl.textContent = result.valid ? `✓ verified — ${label}` : `✗ rejected — ${label}`;
+    verifyCheckEl.className = `demo-check ${result.valid ? 'ok' : 'bad'}`;
+    verifyDetailEl.textContent = `signature valid: ${result.signatureValid} · measurement matches expected: ${result.measurementMatches}`;
+    verifyResultEl.hidden = false;
+  }
+
+  verifyBtn.addEventListener('click', () => {
+    if (!currentQuote || !expectedMeasurement) return;
+    runVerify(currentQuote, expectedMeasurement, 'quote matches the expected measurement');
+  });
+
+  tamperSigBtn.addEventListener('click', () => {
+    // Set up a known-good baseline, then simulate an attacker who edited the
+    // code but can't produce a new signature (no manufacturer_sk) — so they
+    // just reuse the OLD signature alongside the NEW measurement.
+    const expected = measure(HONEST_CODE);
+    const honestQuote = makeQuote(HONEST_CODE, secretKey);
+    const fakeQuote = { measurement: measure(TAMPERED_CODE), signature: honestQuote.signature };
+    runVerify(fakeQuote, expected, 'a reused signature over a new measurement was correctly rejected');
+  });
+
+  tamperMeasurementBtn.addEventListener('click', () => {
+    // Simulate an attacker who somehow DID have the manufacturer's key and
+    // honestly re-signed the tampered code — the signature is now genuinely
+    // valid, but the measurement still doesn't match what the verifier
+    // independently expected in advance.
+    const expected = measure(HONEST_CODE);
+    const resignedQuote = makeQuote(TAMPERED_CODE, secretKey);
+    runVerify(resignedQuote, expected, 'an honestly-resigned but tampered measurement was still correctly rejected');
+  });
+
+  statusEl.textContent = 'Ready. Manufacturer key generated — edit the code above and try the three steps.';
+</script>

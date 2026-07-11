@@ -201,6 +201,17 @@ th {
   color: var(--text);
   width: 8rem;
 }
+.demo-row textarea {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: 0.6em 0.75em;
+  border: 1px solid var(--border);
+  border-radius: 0.4em;
+  background: var(--bg);
+  color: var(--text);
+  width: 100%;
+  resize: vertical;
+}
 .demo-panel button {
   font-family: var(--font-sans);
   font-size: 0.9rem;
